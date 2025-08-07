@@ -1,46 +1,35 @@
 import streamlit as st
-import os
-import hashlib
-import secrets
+import gspread
+from google.oauth2.service_account import Credentials
 
-# Lê as variáveis de ambiente
-APP_USER = os.getenv("APP_USER")
-APP_PASSWORD = os.getenv("APP_PASSWORD")
+# -------- LOGIN --------
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-def check_login(username, password):
-    # Compara usuário
-    if username != APP_USER:
-        return False
-    
-    # Compara senha via hash SHA256
-    hash_input = hashlib.sha256(password.encode()).hexdigest()
-    hash_real = hashlib.sha256(APP_PASSWORD.encode()).hexdigest()
-    
-    return hash_input == hash_real
-
-def login():
-    st.title("🔐 Login")
+if not st.session_state.logged_in:
+    st.title("Login do Sistema")
     user = st.text_input("Usuário")
-    pwd = st.text_input("Senha", type="password")
-    
+    password = st.text_input("Senha", type="password")
     if st.button("Entrar"):
-        if check_login(user, pwd):
-            st.session_state["auth_token"] = secrets.token_hex(16)
-            st.session_state["usuario"] = user
-            st.rerun()
+        if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
+            st.session_state.logged_in = True
         else:
             st.error("Usuário ou senha inválidos")
-
-# Se não tiver token, mostra tela de login
-if "auth_token" not in st.session_state:
-    login()
     st.stop()
 
-# Conteúdo protegido
-st.success(f"Bem-vindo, {st.session_state['usuario']}!")
-st.write("🎯 Você está logado com segurança usando variáveis de ambiente.")
+# -------- CONEXÃO GOOGLE SHEETS --------
+creds = Credentials.from_service_account_info(st.secrets["google_service_account"])
+client = gspread.authorize(creds)
 
-# Botão para sair
-if st.button("Sair"):
-    st.session_state.clear()
-    st.rerun()
+# Abrir a planilha usando o ID
+spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+
+# Abrir a aba chamada "dados"
+sheet = spreadsheet.worksheet("dados")
+
+# Pegar todas as linhas da aba como lista de dicionários
+data = sheet.get_all_records()
+
+# Mostrar os dados no app
+st.title("📊 Dados da aba 'dados'")
+st.dataframe(data)
