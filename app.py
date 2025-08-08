@@ -16,16 +16,6 @@ def get_scopes():
 def check_login():
     return st.session_state.get("logged_in", False)
 
-def do_login():
-    user = st.session_state.get("user_input", "")
-    password = st.session_state.get("password_input", "")
-    if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
-        st.session_state["logged_in"] = True
-        st.session_state["login_failed"] = False
-    else:
-        st.session_state["logged_in"] = False
-        st.session_state["login_failed"] = True
-
 def do_logout():
     st.session_state["logged_in"] = False
     st.session_state["login_failed"] = False
@@ -62,6 +52,8 @@ def show_login():
                 st.session_state["logged_in"] = False
                 st.session_state["login_failed"] = True
 
+    if st.session_state.get("login_failed", False):
+        st.error("Usuário ou senha inválidos")
 
 def show_protected_content():
     st.success("Você está logado!")
@@ -71,7 +63,9 @@ def show_protected_content():
 
     st.dataframe(data, use_container_width=True)
 
-    st.button("Logout", on_click=do_logout)
+    if st.button("Logout"):
+        do_logout()
+        st.experimental_rerun()
 
 # -------- Execução --------
 
