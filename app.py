@@ -6,22 +6,23 @@ import pytz
 
 SESSION_TIMEOUT_MINUTES = 10
 
-# Usuários e senhas para exemplo - substitua pelos seus ou configure melhor
+# Usuários e nomes (sem senha em texto plano)
 users = {
     "user1": {"name": "Usuário 1"},
     "user2": {"name": "Usuário 2"},
 }
 
+# Copie suas senhas já hasheadas geradas externamente (exemplo fictício)
 hashed_passwords = [
-    "<hash_da_senha_do_user1_aqui>",
-    "<hash_da_senha_do_user2_aqui>"
+    "$2b$12$abcdefghijklmnopqrstuv",  # substitua pelo hash real da senha do user1
+    "$2b$12$1234567890abcdefghijkl",  # substitua pelo hash real da senha do user2
 ]
 
 credentials = {
     "usernames": {
         username: {
             "name": users[username]["name"],
-            "password": hashed_passwords[i]
+            "password": hashed_passwords[i],
         }
         for i, username in enumerate(users.keys())
     }
@@ -29,9 +30,9 @@ credentials = {
 
 authenticator = stauth.Authenticate(
     credentials,
-    "app_cookie_name",
-    "app_signature_key",  # Use uma chave secreta forte aqui
-    cookie_expiry_days=1
+    cookie_name="app_cookie_name",
+    key="app_signature_key",  # chave secreta, troque para algo forte e secreto
+    cookie_expiry_days=1,
 )
 
 def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
@@ -64,7 +65,7 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
                 Sessão expira em:<br><b>{expire_str} (Horário de Brasília)</b>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
     else:
         st.markdown(
@@ -88,16 +89,17 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
                 Sessão expirada
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
-# Login
-name, authentication_status, username = authenticator.login("Login", "main")
+
+# Login e autenticação
+name, authentication_status, username = authenticator.login("Login", location="main")
 
 if authentication_status:
     st.success(f"Você está logado como {name}!")
 
-    # Marca o tempo do login na session_state, se não existir ainda
+    # Guarda o timestamp do login na sessão
     if "login_time" not in st.session_state:
         st.session_state.login_time = time.time()
 
@@ -109,10 +111,11 @@ if authentication_status:
 
     # Botão logout
     if st.button("Logout"):
-        authenticator.logout("Logout", "main")
+        authenticator.logout("Logout", location="main")
         st.session_state.pop("login_time", None)
 
 elif authentication_status is False:
     st.error("Usuário ou senha inválidos")
+
 else:
     st.info("Por favor, faça login")
