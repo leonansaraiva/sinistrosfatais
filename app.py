@@ -2,16 +2,12 @@ import streamlit as st
 import gspread
 from google.oauth2.service_account import Credentials
 
-# -------- Configurações --------
-
 def get_scopes():
     return [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive.file",
         "https://www.googleapis.com/auth/drive",
     ]
-
-# -------- Funções de Autenticação --------
 
 def check_login():
     return st.session_state.get("logged_in", False)
@@ -21,8 +17,6 @@ def do_logout():
     st.session_state["login_failed"] = False
     st.session_state["user_input"] = ""
     st.session_state["password_input"] = ""
-
-# -------- Google Sheets --------
 
 def get_google_sheet_data():
     creds = Credentials.from_service_account_info(
@@ -35,8 +29,6 @@ def get_google_sheet_data():
     data = sheet.get_all_records()
     return data
 
-# -------- Interface --------
-
 def show_login():
     st.title("Login")
     with st.form("login_form"):
@@ -47,7 +39,6 @@ def show_login():
             if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
                 st.session_state["logged_in"] = True
                 st.session_state["login_failed"] = False
-                st.experimental_rerun()  # força rerun para mostrar conteúdo direto
             else:
                 st.session_state["logged_in"] = False
                 st.session_state["login_failed"] = True
@@ -66,8 +57,6 @@ def show_protected_content():
     if st.button("Logout"):
         do_logout()
         st.experimental_rerun()
-
-# -------- Execução --------
 
 def main():
     if check_login():
