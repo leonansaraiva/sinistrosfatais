@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCookieManager
 import time
+import json
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -8,23 +9,20 @@ from google.oauth2.service_account import Credentials
 SESSION_TIMEOUT_MINUTES = int(st.secrets.get("SESSION_TIMEOUT_MINUTES", "10"))
 COOKIE_PASSWORD = st.secrets.get("COOKIE_PASSWORD", "troque_essa_senha_agora")
 
-# Inicializa cookies
 cookies = EncryptedCookieManager(prefix="myapp_", password=COOKIE_PASSWORD)
 if not cookies.ready():
-    st.stop()  # espera cookies carregarem
+    st.stop()
 
 def is_logged_in():
     login_info = cookies.get("login_info")
     if not login_info:
         return False
     try:
-        login_data = eval(login_info)
+        login_data = json.loads(login_info)
         login_time = login_data.get("login_time")
         if login_time is None:
             return False
-        # Verifica se sessão expirou
         if time.time() - login_time > SESSION_TIMEOUT_MINUTES * 60:
-            # Remove cookie expirado
             if "login_info" in cookies:
                 del cookies["login_info"]
                 cookies.save()
@@ -35,7 +33,7 @@ def is_logged_in():
 
 def set_login():
     login_data = {"login_time": time.time()}
-    cookies["login_info"] = str(login_data)
+    cookies["login_info"] = json.dumps(login_data)
     cookies.save()
 
 def clear_login():
@@ -54,20 +52,19 @@ def handle_login():
     password = st.session_state.get("password_input", "")
     if login(user, password):
         st.experimental_rerun()
-        return  # interrompe execução após rerun
+        return
     else:
         st.session_state.login_failed = True
 
 def handle_logout():
     clear_login()
-    st.session_state.logged_out = True  # sinaliza logout, não chama rerun aqui
+    st.session_state.logged_out = True
 
 if "login_failed" not in st.session_state:
     st.session_state.login_failed = False
 if "logged_out" not in st.session_state:
     st.session_state.logged_out = False
 
-# Se detectou logout, faz rerun **fora** do callback
 if st.session_state.logged_out:
     st.session_state.logged_out = False
     st.experimental_rerun()
