@@ -1,36 +1,72 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
+from streamlit_cookies_manager import EncryptedCookieManager
+import time
+import os
 
-# Inicializa variáveis de estado
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "login_failed" not in st.session_state:
-    st.session_state.login_failed = False
+# Configurações da sessão via variáveis de ambiente ou st.secrets
+SESSION_TIMEOUT_MINUTES = int(st.secrets.get("SESSION_TIMEOUT_MINUTES", "10"))
+COOKIE_PASSWORD = st.secrets.get("COOKIE_PASSWORD", "troque_essa_senha_agora")
 
-def login():
-    user = st.session_state.get("user_input", "")
-    password = st.session_state.get("password_input", "")
+# Inicializa cookies
+cookies = EncryptedCookieManager(prefix="myapp_", password=COOKIE_PASSWORD)
+
+if not cookies.ready():
+    st.stop()  # Espera o cookie estar pronto
+
+def is_logged_in():
+    """Checa se usuário está logado e se sessão está válida."""
+    login_info = cookies.get("login_info")
+    if not login_info:
+        return False
+    # login_info é esperado ser dict salvo como string
+    try:
+        login_data = eval(login_info)
+        login_time = login_data.get("login_time")
+        if login_time is None:
+            return False
+        # Verifica timeout
+        if time.time() - login_time > SESSION_TIMEOUT_MINUTES * 60:
+            # Sessão expirada
+            cookies["login_info"] = None
+            cookies.save()
+            return False
+        return True
+    except Exception:
+        return False
+
+def set_login():
+    """Salva login e timestamp nos cookies."""
+    login_data = {"login_time": time.time()}
+    cookies["login_info"] = str(login_data)
+    cookies.save()
+
+def clear_login():
+    cookies["login_info"] = None
+    cookies.save()
+
+def login(user, password):
     if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
-        st.session_state.logged_in = True
-        st.session_state.login_failed = False
-    else:
-        st.session_state.logged_in = False
-        st.session_state.login_failed = True
+        set_login()
+        return True
+    return False
 
-if not st.session_state.logged_in:
+if not is_logged_in():
     st.title("Login do Sistema")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=login)
-
-    if st.session_state.login_failed:
-        st.error("Usuário ou senha inválidos")
+    user = st.text_input("Usuário", key="user_input")
+    password = st.text_input("Senha", type="password", key="password_input")
+    if st.button("Entrar"):
+        if login(user, password):
+            st.experimental_rerun()
+        else:
+            st.error("Usuário ou senha inválidos")
 else:
     st.success("Login realizado com sucesso!")
     st.write("Você está logado!")
 
+    # Seu conteúdo protegido aqui (ex: planilha google)
     st.title("Teste Google Sheets direto")
+    import gspread
+    from google.oauth2.service_account import Credentials
 
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
@@ -49,7 +85,6 @@ else:
     except Exception as e:
         st.error(f"Erro ao ler planilha: {e}")
 
-    # Botão de logout para facilitar teste
     if st.button("Logout"):
-        st.session_state.logged_in = False
+        clear_login()
         st.experimental_rerun()
