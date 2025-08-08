@@ -1,66 +1,90 @@
 import streamlit as st
-import time
 import gspread
 from google.oauth2.service_account import Credentials
 
-SESSION_TIMEOUT_MINUTES = 10
+# -------- Configurações --------
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.login_time = 0
-    st.session_state.login_failed = False
+def get_scopes():
+    """Retorna escopos necessários para acessar Google Sheets e Drive."""
+    return [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive",
+    ]
 
-def is_logged_in():
-    if not st.session_state.logged_in:
-        return False
-    if time.time() - st.session_state.login_time > SESSION_TIMEOUT_MINUTES * 60:
-        st.session_state.logged_in = False
-        return False
-    return True
+# -------- Funções de Autenticação --------
 
-def login_callback():
-    user = st.session_state.user_input
-    pwd = st.session_state.password_input
-    if user == st.secrets["APP_USER"] and pwd == st.secrets["APP_PASSWORD"]:
-        st.session_state.logged_in = True
-        st.session_state.login_time = time.time()
-        st.session_state.login_failed = False
+def check_login():
+    """Verifica se usuário está logado no session_state."""
+    return st.session_state.get("logged_in", False)
+
+def do_login(user, password):
+    """
+    Tenta autenticar usuário. 
+    Retorna True se login válido, False caso contrário.
+    """
+    if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
+        st.session_state["logged_in"] = True
+        return True
     else:
-        st.session_state.logged_in = False
-        st.session_state.login_failed = True
+        st.session_state["logged_in"] = False
+        return False
 
-def logout_callback():
-    st.session_state.logged_in = False
-    st.session_state.login_failed = False
+def do_logout():
+    """Realiza logout, limpando estado."""
+    st.session_state["logged_in"] = False
 
-if not is_logged_in():
+# -------- Função para ler dados do Google Sheets --------
+
+def get_google_sheet_data():
+    """
+    Autentica com Google Sheets via service account,
+    abre a planilha e retorna os dados da aba "dados" como lista de dicionários.
+    """
+    creds = Credentials.from_service_account_info(
+        st.secrets["google_service_account"],
+        scopes=get_scopes()
+    )
+    client = gspread.authorize(creds)
+    spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+    sheet = spreadsheet.worksheet("dados")
+    data = sheet.get_all_records()
+    return data
+
+# -------- Interface --------
+
+def show_login():
+    """Mostra formulário de login."""
     st.title("Login")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=login_callback)
-    if st.session_state.login_failed:
-        st.error("Usuário ou senha inválidos")
-else:
+    user = st.text_input("Usuário", key="user_input")
+    password = st.text_input("Senha", type="password", key="password_input")
+    if st.button("Entrar"):
+        if do_login(user, password):
+            st.experimental_rerun()
+        else:
+            st.error("Usuário ou senha inválidos")
+
+def show_protected_content():
+    """Mostra conteúdo protegido após login."""
     st.success("Você está logado!")
-    st.write("Conteúdo protegido aqui...")
-
-    # Ler dados do Google Sheets
+    
     with st.spinner("Carregando dados da planilha..."):
-        scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive.file",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        creds = Credentials.from_service_account_info(
-            st.secrets["google_service_account"],
-            scopes=scopes
-        )
-        client = gspread.authorize(creds)
-
-        spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
-        sheet = spreadsheet.worksheet("dados")
-        data = sheet.get_all_records()
-
+        data = get_google_sheet_data()
+    
     st.dataframe(data, use_container_width=True)
 
-    st.button("Logout", on_click=logout_callback)
+    if st.button("Logout"):
+        do_logout()
+        st.experimental_rerun()
+
+# -------- Execução --------
+
+def main():
+    # Nota: O login é perdido ao atualizar a página, pois session_state não é persistente entre sessões.
+    if check_login():
+        show_protected_content()
+    else:
+        show_login()
+
+if __name__ == "__main__":
+    main()
