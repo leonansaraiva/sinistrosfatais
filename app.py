@@ -26,12 +26,12 @@ def login_callback():
     else:
         st.session_state.logged_in = False
         st.session_state.login_failed = True
-    st.experimental_rerun()  # Aqui, dentro do callback do botão, é permitido!
+    # REMOVIDO st.experimental_rerun()
 
 def logout_callback():
     st.session_state.logged_in = False
     st.session_state.login_failed = False
-    st.experimental_rerun()  # Também dentro do callback
+    # REMOVIDO st.experimental_rerun()
 
 if not is_logged_in():
     st.title("Login")
