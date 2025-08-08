@@ -1,54 +1,62 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import gspread
+from google.oauth2.service_account import Credentials
 
-def login_callback():
-    user = st.session_state.user_input
-    password = st.session_state.password_input
+def get_scopes():
+    return [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive",
+    ]
+
+def check_login():
+    return st.session_state.get("logged_in", False)
+
+def do_login(user, password):
     if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
-        st.session_state.logged_in = True
-        st.session_state.login_failed = False
+        st.session_state["logged_in"] = True
+        st.session_state["login_failed"] = False
     else:
-        st.session_state.logged_in = False
-        st.session_state.login_failed = True
-    st.experimental_rerun()
+        st.session_state["logged_in"] = False
+        st.session_state["login_failed"] = True
+
+def do_logout():
+    st.session_state["logged_in"] = False
+    st.session_state["login_failed"] = False
+    st.session_state["user_input"] = ""
+    st.session_state["password_input"] = ""
+
+def get_google_sheet_data():
+    creds = Credentials.from_service_account_info(
+        st.secrets["google_service_account"],
+        scopes=get_scopes()
+    )
+    client = gspread.authorize(creds)
+    spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+    sheet = spreadsheet.worksheet("dados")
+    return sheet.get_all_records()
 
 def show_login():
     st.title("Login")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input", max_chars=8)
-    st.button("Entrar", key="login_button", on_click=login_callback)
-
-    # Código JS para focar botão quando senha tiver 8 caracteres
-    js = """
-    <script>
-    const pwdInput = window.parent.document.querySelector('input[type="password"]');
-    const btn = window.parent.document.querySelector('button[kind="primary"]');
-
-    if (pwdInput && btn) {
-        pwdInput.addEventListener('input', function() {
-            if(this.value.length >= 8){
-                btn.focus();
-            }
-        });
-    }
-    </script>
-    """
-
-    components.html(js)
-
+    with st.form("login_form"):
+        user = st.text_input("Usuário", key="user_input")
+        password = st.text_input("Senha", type="password", key="password_input")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            do_login(user, password)
     if st.session_state.get("login_failed", False):
         st.error("Usuário ou senha inválidos")
 
 def show_protected_content():
     st.success("Você está logado!")
-    st.write("Conteúdo protegido")
+    with st.spinner("Carregando dados da planilha..."):
+        data = get_google_sheet_data()
+    st.dataframe(data, use_container_width=True)
     if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.login_failed = False
-        st.experimental_rerun()
+        do_logout()
 
 def main():
-    if st.session_state.get("logged_in", False):
+    if check_login():
         show_protected_content()
     else:
         show_login()
