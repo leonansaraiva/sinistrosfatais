@@ -60,13 +60,17 @@ def handle_login():
 
 def handle_logout():
     clear_login()
-    st.session_state.logged_out = True  # marca que deslogou
+    st.session_state.logged_out = True  # sinaliza logout, não chama rerun aqui
 
-st.button("Logout", on_click=handle_logout)
+if "login_failed" not in st.session_state:
+    st.session_state.login_failed = False
+if "logged_out" not in st.session_state:
+    st.session_state.logged_out = False
 
-if st.session_state.get("logged_out", False):
-    st.session_state.logged_out = False  # reseta a flag
-    st.experimental_rerun()  # faz rerun aqui, fora do callback
+# Se detectou logout, faz rerun **fora** do callback
+if st.session_state.logged_out:
+    st.session_state.logged_out = False
+    st.experimental_rerun()
 
 if not is_logged_in():
     st.title("Login do Sistema")
