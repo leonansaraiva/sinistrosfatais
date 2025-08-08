@@ -57,9 +57,11 @@ def show_login():
             if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
                 st.session_state["logged_in"] = True
                 st.session_state["login_failed"] = False
+                st.experimental_rerun()  # força rerun para mostrar conteúdo direto
             else:
                 st.session_state["logged_in"] = False
                 st.session_state["login_failed"] = True
+
 
 def show_protected_content():
     st.success("Você está logado!")
