@@ -7,6 +7,8 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.login_time = 0
     st.session_state.login_failed = False
+if "needs_rerun" not in st.session_state:
+    st.session_state.needs_rerun = False
 
 def is_logged_in():
     if not st.session_state.logged_in:
@@ -26,6 +28,10 @@ def try_login(user, pwd):
         st.session_state.login_failed = True
         return False
 
+if st.session_state.needs_rerun:
+    st.session_state.needs_rerun = False
+    st.experimental_rerun()
+
 if not is_logged_in():
     st.title("Login")
     user = st.text_input("Usuário", key="user_input")
@@ -41,3 +47,4 @@ else:
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.login_failed = False
+        st.session_state.needs_rerun = True
