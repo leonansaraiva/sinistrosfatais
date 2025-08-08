@@ -34,16 +34,15 @@ def logout():
 if not is_logged_in():
     st.title("Login")
 
-    with st.form("login_form", clear_on_submit=False):
-        user = st.text_input("Usuário", key="user_input")
-        pwd = st.text_input("Senha", type="password", key="password_input")
+    with st.form("login_form"):
+        user = st.text_input("Usuário")
+        pwd = st.text_input("Senha", type="password")
         submitted = st.form_submit_button("Entrar")
         if submitted:
             try_login(user, pwd)
 
     if st.session_state.login_failed:
         st.error("Usuário ou senha inválidos")
-
 else:
     st.success("Você está logado!")
     st.write("Conteúdo protegido aqui...")
