@@ -7,6 +7,7 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.login_time = 0
     st.session_state.login_failed = False
+    st.session_state.logout_click_id = 0  # para controle do logout
 
 def is_logged_in():
     if not st.session_state.logged_in:
@@ -21,6 +22,7 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
+        st.session_state.logout_click_id = 0
         return True
     else:
         st.session_state.login_failed = True
@@ -38,10 +40,7 @@ else:
     st.success("Você está logado!")
     st.write("Conteúdo protegido aqui...")
 
-    # Logout com formulário
-    with st.form(key="logout_form"):
-        submitted = st.form_submit_button("Logout")
-        if submitted:
-            st.session_state.logged_in = False
-            st.session_state.login_failed = False
-            st.experimental_rerun()
+    # Botão logout com chave que muda a cada clique
+    if st.button("Logout", key=f"logout_{st.session_state.logout_click_id}"):
+        st.session_state.logged_in = False
+        st.session_state.logout_click_id += 1
