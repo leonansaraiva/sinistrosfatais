@@ -7,7 +7,6 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.login_time = 0
     st.session_state.login_failed = False
-    st.session_state.logout_clicked = False
 
 def is_logged_in():
     if not st.session_state.logged_in:
@@ -22,7 +21,6 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
-        st.session_state.logout_clicked = False
         return True
     else:
         st.session_state.login_failed = True
@@ -40,12 +38,10 @@ else:
     st.success("Você está logado!")
     st.write("Conteúdo protegido aqui...")
 
-    if st.button("Logout"):
-        st.session_state.logged_in = False
-        st.session_state.logout_clicked = True
-
-    # Pequeno truque para forçar atualização:
-    # Criar um elemento invisível que depende do estado logout_clicked
-    # Assim o Streamlit detecta mudança e atualiza a UI imediatamente
-    if st.session_state.logout_clicked:
-        st.empty()
+    # Logout com formulário
+    with st.form(key="logout_form"):
+        submitted = st.form_submit_button("Logout")
+        if submitted:
+            st.session_state.logged_in = False
+            st.session_state.login_failed = False
+            st.experimental_rerun()
