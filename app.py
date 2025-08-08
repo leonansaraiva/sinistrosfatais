@@ -1,90 +1,46 @@
 import streamlit as st
-from streamlit_cookies_manager import EncryptedCookieManager
 import time
-import json
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Configurações da sessão (via secrets)
-SESSION_TIMEOUT_MINUTES = int(st.secrets.get("SESSION_TIMEOUT_MINUTES", "10"))
-COOKIE_PASSWORD = st.secrets.get("COOKIE_PASSWORD", "troque_essa_senha_agora")
-
-cookies = EncryptedCookieManager(prefix="myapp_", password=COOKIE_PASSWORD)
-if not cookies.ready():
-    st.stop()
+SESSION_TIMEOUT_MINUTES = 10
 
 def is_logged_in():
-    login_info = cookies.get("login_info")
-    if not login_info:
+    if "logged_in" not in st.session_state:
         return False
-    try:
-        login_data = json.loads(login_info)
-        login_time = login_data.get("login_time")
-        if login_time is None:
-            return False
-        if time.time() - login_time > SESSION_TIMEOUT_MINUTES * 60:
-            if "login_info" in cookies:
-                del cookies["login_info"]
-                cookies.save()
-            return False
-        return True
-    except Exception:
+    if not st.session_state.logged_in:
         return False
+    login_time = st.session_state.get("login_time", 0)
+    if time.time() - login_time > SESSION_TIMEOUT_MINUTES * 60:
+        st.session_state.logged_in = False
+        return False
+    return True
 
-def set_login():
-    login_data = {"login_time": time.time()}
-    cookies["login_info"] = json.dumps(login_data)
-    cookies.save()
-
-def clear_login():
-    if "login_info" in cookies:
-        del cookies["login_info"]
-        cookies.save()
-
-def login(user, password):
+def do_login(user, password):
     if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
-        set_login()
+        st.session_state.logged_in = True
+        st.session_state.login_time = time.time()
         return True
     return False
 
-def handle_login():
-    user = st.session_state.get("user_input", "")
-    password = st.session_state.get("password_input", "")
-    if login(user, password):
-        st.experimental_rerun()
-        return
-    else:
-        st.session_state.login_failed = True
-
-def handle_logout():
-    clear_login()
-    st.session_state.logged_out = True
-
-if "login_failed" not in st.session_state:
-    st.session_state.login_failed = False
-if "logged_out" not in st.session_state:
-    st.session_state.logged_out = False
-
-if st.session_state.logged_out:
-    st.session_state.logged_out = False
-    st.experimental_rerun()
+def logout():
+    st.session_state.logged_in = False
 
 if not is_logged_in():
-    st.title("Login do Sistema")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=handle_login)
-
-    if st.session_state.login_failed:
-        st.error("Usuário ou senha inválidos")
+    st.title("Login")
+    user = st.text_input("Usuário", key="user_input")
+    password = st.text_input("Senha", type="password", key="password_input")
+    if st.button("Entrar"):
+        if do_login(user, password):
+            st.experimental_rerun()
+        else:
+            st.error("Usuário ou senha inválidos")
 else:
-    st.success("Login realizado com sucesso!")
-    st.write("Você está logado!")
-
-    st.title("Teste Google Sheets direto")
-
+    st.success(f"Logado como {st.session_state.get('user_input','')}")
+    
+    # Seu conteúdo protegido aqui
+    st.title("Dados da planilha")
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-
     try:
         creds = Credentials.from_service_account_info(
             st.secrets["google_service_account"],
@@ -93,11 +49,11 @@ else:
         client = gspread.authorize(creds)
         spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
         sheet = spreadsheet.worksheet("dados")
-
         data = sheet.get_all_records()
         st.dataframe(data)
-
     except Exception as e:
         st.error(f"Erro ao ler planilha: {e}")
 
-    st.button("Logout", on_click=handle_logout)
+    if st.button("Logout"):
+        logout()
+        st.experimental_rerun()
