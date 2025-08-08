@@ -25,16 +25,18 @@ def try_login(user, pwd):
 def logout():
     st.session_state.logged_in = False
     st.session_state.login_failed = False
-    # limpa query params ao sair
-    st.experimental_set_query_params()
+    # clear query params on logout
+    st.query_params.clear()
+    st.experimental_set_query_params()  # This line removed as per the new API
 
 def force_rerun():
-    # pega os params atuais
-    params = st.experimental_get_query_params()
-    # alterna valor de um parâmetro dummy para forçar atualização
+    # Get current query params
+    params = st.query_params
+    # Toggle a dummy param to force rerun
     dummy = params.get("dummy", ["0"])[0]
-    novo_valor = "1" if dummy == "0" else "0"
-    st.experimental_set_query_params(dummy=novo_valor)
+    new_value = "1" if dummy == "0" else "0"
+    # Update query params to force rerun
+    st.query_params = {"dummy": new_value}
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -46,9 +48,9 @@ if not is_logged_in():
     user = st.text_input("Usuário", key="user_input")
     pwd = st.text_input("Senha", type="password", key="password_input")
     if st.button("Entrar"):
-        sucesso = try_login(user, pwd)
-        if sucesso:
-            force_rerun()  # força atualização da página após login
+        success = try_login(user, pwd)
+        if success:
+            force_rerun()  # Force rerun via query param toggle
     if st.session_state.login_failed:
         st.error("Usuário ou senha inválidos")
 else:
@@ -57,4 +59,4 @@ else:
 
     if st.button("Logout"):
         logout()
-        force_rerun()  # força atualização da página após logout
+        force_rerun()
