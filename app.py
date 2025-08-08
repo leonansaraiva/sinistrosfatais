@@ -13,6 +13,7 @@ if not st.session_state.logged_in:
         if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
             st.session_state.logged_in = True
             st.success("Login realizado com sucesso!")
+            # Rerun após mostrar sucesso para atualizar interface
             st.experimental_rerun()
         else:
             st.error("Usuário ou senha inválidos")
