@@ -1,21 +1,52 @@
 import streamlit as st
-import time
+import streamlit_authenticator as stauth
 import datetime
+import time
+import pytz
 
 SESSION_TIMEOUT_MINUTES = 10
 
+# Usuários e senhas para exemplo - substitua pelos seus ou configure melhor
+users = {
+    "user1": {"name": "Usuário 1", "password": "senha123"},
+    # Você pode adicionar mais usuários aqui
+}
+
+# Gerar hashes para as senhas (no app real, faça isso separado e armazene só os hashes)
+hashed_passwords = stauth.Hasher([u["password"] for u in users.values()]).generate()
+
+# Mapear nomes e hashes para o formato esperado
+credentials = {
+    "usernames": {
+        username: {
+            "name": user["name"],
+            "password": hashed_passwords[i]
+        }
+        for i, (username, user) in enumerate(users.items())
+    }
+}
+
+authenticator = stauth.Authenticate(
+    credentials,
+    "app_cookie_name",
+    "app_signature_key",  # Use uma chave secreta forte aqui
+    cookie_expiry_days=1
+)
+
 def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
+    br_tz = pytz.timezone("America/Sao_Paulo")
     expire_timestamp = login_time + timeout_minutos * 60
     remaining_seconds = int(expire_timestamp - time.time())
 
     if remaining_seconds > 0:
-        expire_dt = datetime.datetime.fromtimestamp(expire_timestamp)
+        expire_dt_utc = datetime.datetime.utcfromtimestamp(expire_timestamp)
+        expire_dt = expire_dt_utc.replace(tzinfo=pytz.utc).astimezone(br_tz)
         expire_str = expire_dt.strftime("%d/%m/%Y %H:%M:%S")
         st.markdown(
             f"""
             <div style="
                 position: fixed; 
-                top: 10px; 
+                top: 50px; 
                 left: 50%; 
                 transform: translateX(-50%);
                 background-color: white; 
@@ -29,7 +60,7 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
                 text-align: center;
                 min-width: 220px;
                 ">
-                Sessão expira em:<br><b>{expire_str}</b>
+                Sessão expira em:<br><b>{expire_str} (Horário de Brasília)</b>
             </div>
             """,
             unsafe_allow_html=True
@@ -39,7 +70,7 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
             """
             <div style="
                 position: fixed; 
-                top: 10px; 
+                top: 50px; 
                 left: 50%; 
                 transform: translateX(-50%);
                 background-color: #f8d7da; 
@@ -59,46 +90,28 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
             unsafe_allow_html=True
         )
 
+# Login
+name, authentication_status, username = authenticator.login("Login", "main")
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.login_time = 0
-    st.session_state.login_failed = False
+if authentication_status:
+    st.success(f"Você está logado como {name}!")
 
-def is_logged_in():
-    if not st.session_state.logged_in:
-        return False
-    if time.time() - st.session_state.login_time > SESSION_TIMEOUT_MINUTES * 60:
-        st.session_state.logged_in = False
-        return False
-    return True
-
-def login_callback():
-    user = st.session_state.user_input
-    pwd = st.session_state.password_input
-    if user == st.secrets["APP_USER"] and pwd == st.secrets["APP_PASSWORD"]:
-        st.session_state.logged_in = True
+    # Marca o tempo do login na session_state, se não existir ainda
+    if "login_time" not in st.session_state:
         st.session_state.login_time = time.time()
-        st.session_state.login_failed = False
-    else:
-        st.session_state.logged_in = False
-        st.session_state.login_failed = True
-    st.experimental_rerun()  # Chama o rerun dentro do callback, ok!
 
-def logout_callback():
-    st.session_state.logged_in = False
-    st.session_state.login_failed = False
-    st.experimental_rerun()  # Também dentro do callback
-
-if not is_logged_in():
-    st.title("Login")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=login_callback)
-    if st.session_state.login_failed:
-        st.error("Usuário ou senha inválidos")
-else:
-    st.success("Você está logado!")
+    # Conteúdo protegido
     st.write("Conteúdo protegido aqui...")
-    st.button("Logout", on_click=logout_callback)
+
+    # Mostrar aviso de expiração
     mostrar_tempo_sessao_expira(st.session_state.login_time, SESSION_TIMEOUT_MINUTES)
+
+    # Botão logout
+    if st.button("Logout"):
+        authenticator.logout("Logout", "main")
+        st.session_state.pop("login_time", None)
+
+elif authentication_status is False:
+    st.error("Usuário ou senha inválidos")
+else:
+    st.info("Por favor, faça login")
