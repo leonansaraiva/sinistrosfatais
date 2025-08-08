@@ -21,6 +21,7 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
+        st.experimental_rerun()  # <<< Aqui o reload imediato
         return True
     else:
         st.session_state.login_failed = True
@@ -29,7 +30,7 @@ def try_login(user, pwd):
 def logout():
     st.session_state.logged_in = False
     st.session_state.login_failed = False
-    st.experimental_rerun()  # aqui, dentro do callback do botão!
+    st.experimental_rerun()
 
 if not is_logged_in():
     st.title("Login")
