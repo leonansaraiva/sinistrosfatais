@@ -8,21 +8,22 @@ SESSION_TIMEOUT_MINUTES = 10
 
 # Usuários e senhas para exemplo - substitua pelos seus ou configure melhor
 users = {
-    "user1": {"name": "Usuário 1", "password": "senha123"},
-    # Você pode adicionar mais usuários aqui
+    "user1": {"name": "Usuário 1"},
+    "user2": {"name": "Usuário 2"},
 }
 
-# Gerar hashes para as senhas (no app real, faça isso separado e armazene só os hashes)
-hashed_passwords = stauth.Hasher([u["password"] for u in users.values()]).generate()
+hashed_passwords = [
+    "<hash_da_senha_do_user1_aqui>",
+    "<hash_da_senha_do_user2_aqui>"
+]
 
-# Mapear nomes e hashes para o formato esperado
 credentials = {
     "usernames": {
         username: {
-            "name": user["name"],
+            "name": users[username]["name"],
             "password": hashed_passwords[i]
         }
-        for i, (username, user) in enumerate(users.items())
+        for i, username in enumerate(users.keys())
     }
 }
 
