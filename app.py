@@ -7,7 +7,6 @@ if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.login_time = 0
     st.session_state.login_failed = False
-    st.session_state.logout_click_id = 0  # para controle do logout
 
 def is_logged_in():
     if not st.session_state.logged_in:
@@ -22,25 +21,11 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
-        st.session_state.logout_click_id = 0
         return True
     else:
         st.session_state.login_failed = True
         return False
 
-if not is_logged_in():
-    st.title("Login")
-    user = st.text_input("Usuário", key="user_input")
-    pwd = st.text_input("Senha", type="password", key="password_input")
-    if st.button("Entrar"):
-        try_login(user, pwd)
-    if st.session_state.login_failed:
-        st.error("Usuário ou senha inválidos")
-else:
-    st.success("Você está logado!")
-    st.write("Conteúdo protegido aqui...")
-
-    # Botão logout com chave que muda a cada clique
-    if st.button("Logout", key=f"logout_{st.session_state.logout_click_id}"):
-        st.session_state.logged_in = False
-        st.session_state.logout_click_id += 1
+def logout():
+    st.session_state.logged_in = False
+    st.session_state.login_failed
