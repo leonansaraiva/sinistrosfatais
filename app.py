@@ -28,4 +28,19 @@ def try_login(user, pwd):
 
 def logout():
     st.session_state.logged_in = False
-    st.session_state.login_failed
+    st.session_state.login_failed = False
+    st.experimental_rerun()  # aqui, dentro do callback do botão!
+
+if not is_logged_in():
+    st.title("Login")
+    user = st.text_input("Usuário", key="user_input")
+    pwd = st.text_input("Senha", type="password", key="password_input")
+    if st.button("Entrar"):
+        try_login(user, pwd)
+    if st.session_state.login_failed:
+        st.error("Usuário ou senha inválidos")
+else:
+    st.success("Você está logado!")
+    st.write("Conteúdo protegido aqui...")
+
+    st.button("Logout", on_click=logout)
