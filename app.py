@@ -3,7 +3,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
-# --- LOGIN ---
+# --- Login simples ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
@@ -14,28 +14,29 @@ if not st.session_state.logged_in:
     if st.button("Entrar"):
         if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
             st.session_state.logged_in = True
+            # Rerun para atualizar o estado da sessão
             st.experimental_rerun()
         else:
             st.error("Usuário ou senha inválidos")
     st.stop()
 
-# --- CONFIGURAÇÃO GOOGLE SHEETS ---
+# --- Configurar credenciais ---
 creds = Credentials.from_service_account_info(st.secrets["google_service_account"])
 client = gspread.authorize(creds)
 
-# --- ABRIR PLANILHA E LER DADOS ---
+# --- Abrir planilha ---
 spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
 sheet = spreadsheet.worksheet("dados")
-data = sheet.get_all_records()
 
-# Converter em DataFrame para melhor controle visual
+# --- Ler dados ---
+data = sheet.get_all_records()
 df = pd.DataFrame(data)
 
-# --- AUMENTAR LARGURA DO STREAMLIT (container width) ---
+# --- Ajustar layout para largura total ---
 st.markdown(
     """
     <style>
-    .css-1d391kg {  /* container principal */
+    .css-1d391kg {
         max-width: 100% !important;
         padding-left: 1rem;
         padding-right: 1rem;
@@ -46,5 +47,4 @@ st.markdown(
 
 st.title("📊 Dados da aba 'dados'")
 
-# Mostrar o DataFrame usando container width para ocupar toda a tela
 st.dataframe(df, use_container_width=True)
