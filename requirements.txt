@@ -4,3 +4,4 @@ pandas
 gspread
 pandas-datareader
 streamlit-cookies-manager
+pytz
