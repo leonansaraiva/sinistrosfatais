@@ -12,18 +12,18 @@ def get_scopes():
 def check_login():
     return st.session_state.get("logged_in", False)
 
-def do_login():
+def login_button_callback():
     user = st.session_state.get("user_input", "")
     password = st.session_state.get("password_input", "")
     if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
         st.session_state["logged_in"] = True
         st.session_state["login_failed"] = False
-        st.experimental_rerun()
     else:
         st.session_state["logged_in"] = False
         st.session_state["login_failed"] = True
+    st.experimental_rerun()
 
-def do_logout():
+def logout_button_callback():
     st.session_state["logged_in"] = False
     st.session_state["login_failed"] = False
     st.session_state["user_input"] = ""
@@ -44,7 +44,7 @@ def show_login():
     st.title("Login")
     st.text_input("Usuário", key="user_input")
     st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=do_login)
+    st.button("Entrar", on_click=login_button_callback)
     if st.session_state.get("login_failed", False):
         st.error("Usuário ou senha inválidos")
 
@@ -56,7 +56,7 @@ def show_protected_content():
 
     st.dataframe(data, use_container_width=True)
 
-    st.button("Logout", on_click=do_logout)
+    st.button("Logout", on_click=logout_button_callback)
 
 def main():
     if check_login():
