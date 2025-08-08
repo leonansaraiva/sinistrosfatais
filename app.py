@@ -49,13 +49,17 @@ def get_google_sheet_data():
 
 def show_login():
     st.title("Login")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-
-    if st.session_state.get("login_failed", False):
-        st.error("Usuário ou senha inválidos")
-
-    st.button("Entrar", on_click=do_login)
+    with st.form("login_form"):
+        user = st.text_input("Usuário", key="user_input")
+        password = st.text_input("Senha", type="password", key="password_input")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
+                st.session_state["logged_in"] = True
+                st.session_state["login_failed"] = False
+            else:
+                st.session_state["logged_in"] = False
+                st.session_state["login_failed"] = True
 
 def show_protected_content():
     st.success("Você está logado!")
