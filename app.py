@@ -14,7 +14,7 @@ if not st.session_state.logged_in:
     if st.button("Entrar"):
         if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
             st.session_state.logged_in = True
-            st.experimental_rerun()  # Só aqui, dentro do if do botão
+            st.experimental_rerun()  # só aqui, dentro do botão
         else:
             st.error("Usuário ou senha inválidos")
 
@@ -39,6 +39,7 @@ else:
 
     st.dataframe(data, use_container_width=True)
 
+    # Botão para logout
     if st.button("Sair"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.experimental_rerun()  # só aqui, dentro do botão
