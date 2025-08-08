@@ -11,7 +11,6 @@ if "logged_in" not in st.session_state:
 def is_logged_in():
     if not st.session_state.logged_in:
         return False
-    # verifica se a sessão expirou
     if time.time() - st.session_state.login_time > SESSION_TIMEOUT_MINUTES * 60:
         st.session_state.logged_in = False
         return False
@@ -33,12 +32,12 @@ def logout():
 
 if not is_logged_in():
     st.title("Login")
-    user = st.text_input("Usuário", key="user_input")
-    pwd = st.text_input("Senha", type="password", key="password_input")
-
-    if st.button("Entrar"):
-        try_login(user, pwd)
-
+    with st.form("login_form"):
+        user = st.text_input("Usuário")
+        pwd = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+        if submitted:
+            try_login(user, pwd)
     if st.session_state.login_failed:
         st.error("Usuário ou senha inválidos")
 
