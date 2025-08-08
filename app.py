@@ -1,19 +1,10 @@
 import streamlit as st
-
-# Inicializa as variáveis de sessão caso não existam
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-if "login_failed" not in st.session_state:
-    st.session_state.login_failed = False
-if "user_input" not in st.session_state:
-    st.session_state.user_input = ""
-if "password_input" not in st.session_state:
-    st.session_state.password_input = ""
+import streamlit.components.v1 as components
 
 def login_callback():
     user = st.session_state.user_input
-    pwd = st.session_state.password_input
-    if user == st.secrets["APP_USER"] and pwd == st.secrets["APP_PASSWORD"]:
+    password = st.session_state.password_input
+    if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
         st.session_state.logged_in = True
         st.session_state.login_failed = False
     else:
@@ -21,29 +12,43 @@ def login_callback():
         st.session_state.login_failed = True
     st.experimental_rerun()
 
-def logout_callback():
-    st.session_state.logged_in = False
-    st.session_state.login_failed = False
-    st.session_state.user_input = ""
-    st.session_state.password_input = ""
-    st.experimental_rerun()
-
 def show_login():
     st.title("Login")
     st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=login_callback)
+    st.text_input("Senha", type="password", key="password_input", max_chars=8)
+    st.button("Entrar", key="login_button", on_click=login_callback)
 
-    if st.session_state.login_failed:
+    # Código JS para focar botão quando senha tiver 8 caracteres
+    js = """
+    <script>
+    const pwdInput = window.parent.document.querySelector('input[type="password"]');
+    const btn = window.parent.document.querySelector('button[kind="primary"]');
+
+    if (pwdInput && btn) {
+        pwdInput.addEventListener('input', function() {
+            if(this.value.length >= 8){
+                btn.focus();
+            }
+        });
+    }
+    </script>
+    """
+
+    components.html(js)
+
+    if st.session_state.get("login_failed", False):
         st.error("Usuário ou senha inválidos")
 
 def show_protected_content():
     st.success("Você está logado!")
-    st.write("Aqui vai o conteúdo protegido.")
-    st.button("Logout", on_click=logout_callback)
+    st.write("Conteúdo protegido")
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.session_state.login_failed = False
+        st.experimental_rerun()
 
 def main():
-    if st.session_state.logged_in:
+    if st.session_state.get("logged_in", False):
         show_protected_content()
     else:
         show_login()
