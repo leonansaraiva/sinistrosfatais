@@ -6,32 +6,27 @@ import pytz
 
 SESSION_TIMEOUT_MINUTES = 10
 
-# Usuários e nomes (sem senha em texto plano)
 users = {
     "user1": {"name": "Usuário 1"},
-    "user2": {"name": "Usuário 2"},
 }
 
-# Copie suas senhas já hasheadas geradas externamente (exemplo fictício)
 hashed_passwords = [
-    "$2b$12$abcdefghijklmnopqrstuv",  # substitua pelo hash real da senha do user1
-    "$2b$12$1234567890abcdefghijkl",  # substitua pelo hash real da senha do user2
+    "$2b$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # troque pelo hash gerado da senha do user1
 ]
 
 credentials = {
     "usernames": {
-        username: {
-            "name": users[username]["name"],
-            "password": hashed_passwords[i],
+        "user1": {
+            "name": "Usuário 1",
+            "password": hashed_passwords[0],
         }
-        for i, username in enumerate(users.keys())
     }
 }
 
 authenticator = stauth.Authenticate(
     credentials,
     cookie_name="app_cookie_name",
-    key="app_signature_key",  # chave secreta, troque para algo forte e secreto
+    key="app_signature_key",
     cookie_expiry_days=1,
 )
 
@@ -92,24 +87,18 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
             unsafe_allow_html=True,
         )
 
-
-# Login e autenticação
-name, authentication_status, username = authenticator.login("Login", location="main")
+name, authentication_status, username = authenticator.login(name="Login", location="main")
 
 if authentication_status:
     st.success(f"Você está logado como {name}!")
 
-    # Guarda o timestamp do login na sessão
     if "login_time" not in st.session_state:
         st.session_state.login_time = time.time()
 
-    # Conteúdo protegido
     st.write("Conteúdo protegido aqui...")
 
-    # Mostrar aviso de expiração
     mostrar_tempo_sessao_expira(st.session_state.login_time, SESSION_TIMEOUT_MINUTES)
 
-    # Botão logout
     if st.button("Logout"):
         authenticator.logout("Logout", location="main")
         st.session_state.pop("login_time", None)
