@@ -32,7 +32,8 @@ def set_login():
     cookies.save()
 
 def clear_login():
-    cookies["login_info"] = None
+    if "login_info" in cookies:
+        del cookies["login_info"]
     cookies.save()
 
 def login(user, password):
