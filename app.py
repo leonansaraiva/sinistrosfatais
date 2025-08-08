@@ -5,7 +5,6 @@ from google.oauth2.service_account import Credentials
 # -------- Configurações --------
 
 def get_scopes():
-    """Retorna escopos necessários para acessar Google Sheets e Drive."""
     return [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive.file",
@@ -15,32 +14,27 @@ def get_scopes():
 # -------- Funções de Autenticação --------
 
 def check_login():
-    """Verifica se usuário está logado no session_state."""
     return st.session_state.get("logged_in", False)
 
-def do_login(user, password):
-    """
-    Tenta autenticar usuário. 
-    Retorna True se login válido, False caso contrário.
-    """
+def do_login():
+    user = st.session_state.get("user_input", "")
+    password = st.session_state.get("password_input", "")
     if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
         st.session_state["logged_in"] = True
-        return True
+        st.session_state["login_failed"] = False
     else:
         st.session_state["logged_in"] = False
-        return False
+        st.session_state["login_failed"] = True
 
 def do_logout():
-    """Realiza logout, limpando estado."""
     st.session_state["logged_in"] = False
+    st.session_state["login_failed"] = False
+    st.session_state["user_input"] = ""
+    st.session_state["password_input"] = ""
 
-# -------- Função para ler dados do Google Sheets --------
+# -------- Google Sheets --------
 
 def get_google_sheet_data():
-    """
-    Autentica com Google Sheets via service account,
-    abre a planilha e retorna os dados da aba "dados" como lista de dicionários.
-    """
     creds = Credentials.from_service_account_info(
         st.secrets["google_service_account"],
         scopes=get_scopes()
@@ -54,19 +48,16 @@ def get_google_sheet_data():
 # -------- Interface --------
 
 def show_login():
-    """Mostra formulário de login."""
     st.title("Login")
-    user = st.text_input("Usuário", key="user_input")
-    password = st.text_input("Senha", type="password", key="password_input")
+    st.text_input("Usuário", key="user_input")
+    st.text_input("Senha", type="password", key="password_input")
 
-    if st.button("Entrar"):
-        if do_login(user, password):
-            st.experimental_rerun()  # Só aqui, dentro do botão
-        else:
-            st.error("Usuário ou senha inválidos")
+    if st.session_state.get("login_failed", False):
+        st.error("Usuário ou senha inválidos")
+
+    st.button("Entrar", on_click=do_login)
 
 def show_protected_content():
-    """Mostra conteúdo protegido após login."""
     st.success("Você está logado!")
 
     with st.spinner("Carregando dados da planilha..."):
@@ -74,14 +65,11 @@ def show_protected_content():
 
     st.dataframe(data, use_container_width=True)
 
-    if st.button("Logout"):
-        do_logout()
-        st.experimental_rerun()  # Só aqui, dentro do botão
+    st.button("Logout", on_click=do_logout)
 
 # -------- Execução --------
 
 def main():
-    # Nota: O login será perdido ao atualizar a página pois session_state não é persistente.
     if check_login():
         show_protected_content()
     else:
