@@ -58,29 +58,30 @@ def show_login():
     st.title("Login")
     user = st.text_input("Usuário", key="user_input")
     password = st.text_input("Senha", type="password", key="password_input")
+
     if st.button("Entrar"):
         if do_login(user, password):
-            st.experimental_rerun()
+            st.experimental_rerun()  # Só aqui, dentro do botão
         else:
             st.error("Usuário ou senha inválidos")
 
 def show_protected_content():
     """Mostra conteúdo protegido após login."""
     st.success("Você está logado!")
-    
+
     with st.spinner("Carregando dados da planilha..."):
         data = get_google_sheet_data()
-    
+
     st.dataframe(data, use_container_width=True)
 
     if st.button("Logout"):
         do_logout()
-        st.experimental_rerun()
+        st.experimental_rerun()  # Só aqui, dentro do botão
 
 # -------- Execução --------
 
 def main():
-    # Nota: O login é perdido ao atualizar a página, pois session_state não é persistente entre sessões.
+    # Nota: O login será perdido ao atualizar a página pois session_state não é persistente.
     if check_login():
         show_protected_content()
     else:
