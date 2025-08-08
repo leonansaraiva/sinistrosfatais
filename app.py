@@ -3,22 +3,11 @@ import time
 
 SESSION_TIMEOUT_MINUTES = 10
 
-# Inicializa variáveis de sessão
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
     st.session_state.login_time = 0
     st.session_state.login_failed = False
-if "logout_requested" not in st.session_state:
-    st.session_state.logout_requested = False
-
-# Se logout foi solicitado, faça o logout e force rerun
-if st.session_state.logout_requested:
-    st.session_state.logged_in = False
-    st.session_state.login_failed = False
-    st.session_state.user_input = ""
-    st.session_state.password_input = ""
-    st.session_state.logout_requested = False
-    st.experimental_rerun()
+    st.session_state.logout_clicked = False
 
 def is_logged_in():
     if not st.session_state.logged_in:
@@ -33,6 +22,7 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
+        st.session_state.logout_clicked = False
         return True
     else:
         st.session_state.login_failed = True
@@ -51,4 +41,11 @@ else:
     st.write("Conteúdo protegido aqui...")
 
     if st.button("Logout"):
-        st.session_state.logout_requested = True
+        st.session_state.logged_in = False
+        st.session_state.logout_clicked = True
+
+    # Pequeno truque para forçar atualização:
+    # Criar um elemento invisível que depende do estado logout_clicked
+    # Assim o Streamlit detecta mudança e atualiza a UI imediatamente
+    if st.session_state.logout_clicked:
+        st.empty()
