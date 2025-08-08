@@ -1,7 +1,39 @@
 import streamlit as st
 import time
+import datetime
 
 SESSION_TIMEOUT_MINUTES = 10
+
+def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
+    expire_timestamp = login_time + timeout_minutos * 60
+    remaining_seconds = int(expire_timestamp - time.time())
+
+    if remaining_seconds > 0:
+        expire_dt = datetime.datetime.fromtimestamp(expire_timestamp)
+        expire_str = expire_dt.strftime("%d/%m/%Y %H:%M:%S")
+        st.markdown(
+            f"""
+            <div style="position: fixed; top: 10px; right: 10px; 
+                        background-color: #f0f0f0; padding: 8px 12px; 
+                        border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);
+                        font-size: 14px; z-index: 9999;">
+                Sessão expira em:<br><b>{expire_str}</b>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            """
+            <div style="position: fixed; top: 10px; right: 10px; 
+                        background-color: #f8d7da; color: #721c24; padding: 8px 12px; 
+                        border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);
+                        font-size: 14px; z-index: 9999;">
+                Sessão expirada
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -26,7 +58,7 @@ def login_callback():
     else:
         st.session_state.logged_in = False
         st.session_state.login_failed = True
-    st.experimental_rerun()  # Aqui, dentro do callback do botão, é permitido!
+    st.experimental_rerun()  # Chama o rerun dentro do callback, ok!
 
 def logout_callback():
     st.session_state.logged_in = False
@@ -44,3 +76,4 @@ else:
     st.success("Você está logado!")
     st.write("Conteúdo protegido aqui...")
     st.button("Logout", on_click=logout_callback)
+    mostrar_tempo_sessao_expira(st.session_state.login_time, SESSION_TIMEOUT_MINUTES)
