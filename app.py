@@ -36,11 +36,8 @@ if not is_logged_in():
         st.error("Usuário ou senha inválidos")
 else:
     st.success("Você está logado!")
-
-    # Aqui vai seu conteúdo protegido
     st.write("Conteúdo protegido aqui...")
 
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.session_state.login_failed = False
-        st.experimental_rerun()  # Opcional, só se não atualizar automático, senão pode remover
