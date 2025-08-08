@@ -5,4 +5,4 @@ gspread
 pandas-datareader
 streamlit-cookies-manager
 pytz
-streamlit-authenticator==0.9.0
+streamlit-authenticator
