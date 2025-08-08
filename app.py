@@ -13,27 +13,52 @@ def mostrar_tempo_sessao_expira(login_time: float, timeout_minutos: int):
         expire_str = expire_dt.strftime("%d/%m/%Y %H:%M:%S")
         st.markdown(
             f"""
-            <div style="position: fixed; top: 10px; right: 10px; 
-                        background-color: #f0f0f0; padding: 8px 12px; 
-                        border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);
-                        font-size: 14px; z-index: 9999;">
+            <div style="
+                position: fixed; 
+                top: 10px; 
+                left: 50%; 
+                transform: translateX(-50%);
+                background-color: white; 
+                color: black; 
+                padding: 8px 20px; 
+                border-radius: 8px; 
+                box-shadow: 0 0 8px rgba(0,0,0,0.15);
+                font-size: 16px; 
+                font-weight: 600;
+                z-index: 9999;
+                text-align: center;
+                min-width: 220px;
+                ">
                 Sessão expira em:<br><b>{expire_str}</b>
             </div>
-            """, 
+            """,
             unsafe_allow_html=True
         )
     else:
         st.markdown(
             """
-            <div style="position: fixed; top: 10px; right: 10px; 
-                        background-color: #f8d7da; color: #721c24; padding: 8px 12px; 
-                        border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.1);
-                        font-size: 14px; z-index: 9999;">
+            <div style="
+                position: fixed; 
+                top: 10px; 
+                left: 50%; 
+                transform: translateX(-50%);
+                background-color: #f8d7da; 
+                color: #721c24; 
+                padding: 8px 20px; 
+                border-radius: 8px; 
+                box-shadow: 0 0 8px rgba(0,0,0,0.15);
+                font-size: 16px; 
+                font-weight: 600;
+                z-index: 9999;
+                text-align: center;
+                min-width: 220px;
+                ">
                 Sessão expirada
             </div>
             """,
             unsafe_allow_html=True
         )
+
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
