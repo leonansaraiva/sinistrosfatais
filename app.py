@@ -1,5 +1,8 @@
 import streamlit as st
+import gspread
+from google.oauth2.service_account import Credentials
 
+# Inicializa variáveis de estado
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "login_failed" not in st.session_state:
@@ -26,3 +29,27 @@ if not st.session_state.logged_in:
 else:
     st.success("Login realizado com sucesso!")
     st.write("Você está logado!")
+
+    st.title("Teste Google Sheets direto")
+
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+
+    try:
+        creds = Credentials.from_service_account_info(
+            st.secrets["google_service_account"],
+            scopes=SCOPES,
+        )
+        client = gspread.authorize(creds)
+        spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+        sheet = spreadsheet.worksheet("dados")
+
+        data = sheet.get_all_records()
+        st.dataframe(data)
+
+    except Exception as e:
+        st.error(f"Erro ao ler planilha: {e}")
+
+    # Botão de logout para facilitar teste
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.experimental_rerun()
