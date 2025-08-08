@@ -21,7 +21,6 @@ def try_login(user, pwd):
         st.session_state.logged_in = True
         st.session_state.login_time = time.time()
         st.session_state.login_failed = False
-        st.experimental_rerun()  # <<< Aqui o reload imediato
         return True
     else:
         st.session_state.login_failed = True
@@ -37,7 +36,9 @@ if not is_logged_in():
     user = st.text_input("Usuário", key="user_input")
     pwd = st.text_input("Senha", type="password", key="password_input")
     if st.button("Entrar"):
-        try_login(user, pwd)
+        success = try_login(user, pwd)
+        if success:
+            st.experimental_rerun()  # Recarrega a página após login bem-sucedido
     if st.session_state.login_failed:
         st.error("Usuário ou senha inválidos")
 else:
