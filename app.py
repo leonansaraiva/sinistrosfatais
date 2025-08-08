@@ -1,5 +1,7 @@
 import streamlit as st
 import time
+import gspread
+from google.oauth2.service_account import Credentials
 
 SESSION_TIMEOUT_MINUTES = 10
 
@@ -26,12 +28,10 @@ def login_callback():
     else:
         st.session_state.logged_in = False
         st.session_state.login_failed = True
-    # REMOVIDO st.experimental_rerun()
 
 def logout_callback():
     st.session_state.logged_in = False
     st.session_state.login_failed = False
-    # REMOVIDO st.experimental_rerun()
 
 if not is_logged_in():
     st.title("Login")
@@ -43,4 +43,24 @@ if not is_logged_in():
 else:
     st.success("Você está logado!")
     st.write("Conteúdo protegido aqui...")
+
+    # Ler dados do Google Sheets
+    with st.spinner("Carregando dados da planilha..."):
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = Credentials.from_service_account_info(
+            st.secrets["google_service_account"],
+            scopes=scopes
+        )
+        client = gspread.authorize(creds)
+
+        spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+        sheet = spreadsheet.worksheet("dados")
+        data = sheet.get_all_records()
+
+    st.dataframe(data, use_container_width=True)
+
     st.button("Logout", on_click=logout_callback)
