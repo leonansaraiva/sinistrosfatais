@@ -1,46 +1,32 @@
 import streamlit as st
-import time
+import gspread
+from google.oauth2.service_account import Credentials
 
-SESSION_TIMEOUT_MINUTES = 10
+# --- Login simples ---
+st.title("Login do Sistema")
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.login_time = 0
-    st.session_state.login_failed = False
+user = st.text_input("Usuário")
+password = st.text_input("Senha", type="password")
 
-def is_logged_in():
-    if not st.session_state.logged_in:
-        return False
-    if time.time() - st.session_state.login_time > SESSION_TIMEOUT_MINUTES * 60:
-        st.session_state.logged_in = False
-        return False
-    return True
+if st.button("Entrar"):
+    if user == st.secrets["APP_USER"] and password == st.secrets["APP_PASSWORD"]:
+        st.success("Login realizado com sucesso!")
 
-def login_callback():
-    user = st.session_state.user_input
-    pwd = st.session_state.password_input
-    if user == st.secrets["APP_USER"] and pwd == st.secrets["APP_PASSWORD"]:
-        st.session_state.logged_in = True
-        st.session_state.login_time = time.time()
-        st.session_state.login_failed = False
+        # --- Conexão Google Sheets ---
+        creds = Credentials.from_service_account_info(st.secrets["google_service_account"])
+        client = gspread.authorize(creds)
+
+        # Abrir a planilha pelo ID
+        spreadsheet = client.open_by_key(st.secrets["SHEET_ID"])
+
+        # Abrir a aba "dados"
+        sheet = spreadsheet.worksheet("dados")
+
+        # Pegar todos os registros
+        data = sheet.get_all_records()
+
+        # Mostrar os dados, ajustando para ocupar largura da tela
+        st.dataframe(data, use_container_width=True)
+
     else:
-        st.session_state.logged_in = False
-        st.session_state.login_failed = True
-    st.experimental_rerun()  # Aqui, dentro do callback do botão, é permitido!
-
-def logout_callback():
-    st.session_state.logged_in = False
-    st.session_state.login_failed = False
-    st.experimental_rerun()  # Também dentro do callback
-
-if not is_logged_in():
-    st.title("Login")
-    st.text_input("Usuário", key="user_input")
-    st.text_input("Senha", type="password", key="password_input")
-    st.button("Entrar", on_click=login_callback)
-    if st.session_state.login_failed:
         st.error("Usuário ou senha inválidos")
-else:
-    st.success("Você está logado!")
-    st.write("Conteúdo protegido aqui...")
-    st.button("Logout", on_click=logout_callback)
