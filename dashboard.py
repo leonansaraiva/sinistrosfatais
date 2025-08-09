@@ -1,13 +1,12 @@
 import streamlit as st
-import gspread
 import pandas as pd
-import numpy as np
-from google.oauth2.service_account import Credentials
 import base64
-import time
+from google.oauth2.service_account import Credentials
+import gspread
+import numpy as np
+from mapa import show_map
 
 BPTRAN_LOGO_PATH = "bptran_logo.png"
-SESSION_TIMEOUT_MINUTES = 10
 
 def get_scopes():
     return [
@@ -66,18 +65,36 @@ def get_google_sheet_data():
     df = pd.DataFrame(records)
 
     if "Número (KM)" in df.columns:
-        # Substitui '-' por NaN
         df["Número (KM)"] = df["Número (KM)"].astype(str).replace('-', '')
-        # Agora converte para numérico, coerce erros vira NaN
         df["Número (KM)"] = pd.to_numeric(df["Número (KM)"], errors='coerce')
 
-
     return df
+
+def get_fake_map_data():
+    # Dados fake no formato esperado pelo mapa
+    data = [
+        {
+            "id": 1, "bairro": "Centro", "data": "2024-03-10", "genero": "Masculino", "tipo": "Colisão",
+            "latitude": -25.4284, "longitude": -49.2733,
+            "envolvidos": [
+                {"tipo": "Condutor", "nome": "João Silva", "veiculo": "Ford Ka", "placa": "ABC-1234", "resultado": "Óbito"},
+                {"tipo": "Condutor", "nome": "Carlos Souza", "veiculo": "Fiat Uno", "placa": "XYZ-5678", "resultado": "Ferimentos"}
+            ]
+        },
+        {
+            "id": 8, "bairro": "São Francisco", "data": "2025-09-25", "genero": "Masculino", "tipo": "Colisão Frontal",
+            "latitude": -25.3900, "longitude": -49.2800,
+            "envolvidos": [
+                {"tipo": "Condutor", "nome": "Rodrigo Silva", "veiculo": "Toyota Hilux", "placa": "KLM-7777", "resultado": "Óbito"},
+                {"tipo": "Condutor", "nome": "Juliana Souza", "veiculo": "Honda HRV", "placa": "NOP-8888", "resultado": "Ferimentos"}
+            ]
+        }
+    ]
+    return pd.DataFrame(data)
 
 def show_dashboard(logout_callback):
     inject_css()
 
-    # Menu lateral
     with st.sidebar:
         st.markdown(
             f"""
@@ -89,31 +106,29 @@ def show_dashboard(logout_callback):
             """,
             unsafe_allow_html=True
         )
-
-        st.button("Sair", on_click=logout_callback, use_container_width=True)
-
+        st.button("🚪 Sair", on_click=logout_callback, use_container_width=True)
         st.markdown("---")
-        st.markdown("### 📊 Relatórios")
-        st.markdown("- Óbitos")
-        st.markdown("- Comparativo 2024/2025")
-        st.markdown("- Mapa de Ocorrências")
 
-    # Cabeçalho e texto principal
-    st.markdown(
-        f"""
-        <div class="header-container">
-            <img src="data:image/png;base64,{_get_base64(BPTRAN_LOGO_PATH)}" alt="Logo BPTran" />
-            <h2>Sinistros de Trânsito - BPTran</h2>
-            <p>
-                Este relatório apresenta os óbitos em sinistros fatais atendidos pelo Batalhão de Polícia de Trânsito - BPTran em Curitiba.<br>
-                Os dados são extraídos do sistema BATEU e filtrados para mostrar apenas os óbitos registrados pelo BPTran na cidade.<br>
-                Serve de apoio para a elaboração do GDO (Gestão de Desempenho Operacional) e análise comparativa entre os anos 2024 e 2025.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        escolha = st.radio("Selecione a visualização:", ["Tabela", "Mapa"], index=0)
 
-    with st.spinner("Carregando dados da planilha..."):
+    if escolha == "Tabela":
         data = get_google_sheet_data()
-    st.dataframe(data, use_container_width=True, height=800)
+        st.markdown(
+            f"""
+            <div class="header-container">
+                <img src="data:image/png;base64,{_get_base64(BPTRAN_LOGO_PATH)}" alt="Logo BPTran" />
+                <h2>Sinistros de Trânsito - BPTran</h2>
+                <p>
+                    Este relatório apresenta os óbitos em sinistros fatais atendidos pelo Batalhão de Polícia de Trânsito - BPTran em Curitiba.<br>
+                    Os dados são extraídos do sistema BATEU e filtrados para mostrar apenas os óbitos registrados pelo BPTran na cidade.<br>
+                    Serve de apoio para a elaboração do GDO (Gestão de Desempenho Operacional) e análise comparativa entre os anos 2024 e 2025.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.dataframe(data, use_container_width=True, height=800)
+
+    elif escolha == "Mapa":
+        data = get_fake_map_data()
+        show_map(data)

@@ -4,3 +4,5 @@ pandas
 gspread
 pandas-datareader
 pytz
+folium
+streamlit-folium
