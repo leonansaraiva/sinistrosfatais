@@ -4,10 +4,12 @@ import gspread
 import pandas as pd
 import numpy as np
 from google.oauth2.service_account import Credentials
+import base64
 
 st.set_page_config(layout="wide")
 
 SESSION_TIMEOUT_MINUTES = 10
+BPTRAN_LOGO_PATH = "bptran_logo.png"
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -47,8 +49,8 @@ def logout_callback():
     st.session_state.login_failed = False
     st.session_state.user_input = ""
     st.session_state.password_input = ""
-    st.query_params = {"logout": str(time.time())}
-    st.rerun()
+    st.experimental_set_query_params(logout=str(time.time()))
+    # Não chame st.experimental_rerun() para evitar erro
 
 def get_google_sheet_data():
     creds = Credentials.from_service_account_info(
@@ -67,31 +69,104 @@ def get_google_sheet_data():
 
     return df
 
+def _get_base64(file_path):
+    with open(file_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+def inject_css():
+    st.markdown(
+        """
+        <style>
+        .header-container {
+            width: 100%;
+            padding: 0 1rem;
+            margin: 20px auto;
+            text-align: justify;
+            line-height: 1.4;
+            font-weight: normal;
+            font-size: 1rem;
+        }
+        .header-container img {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 12px;
+            width: 120px;
+            object-fit: contain;
+            margin-top: 0;
+        }
+        .header-container h2 {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
 def show_login():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown(
-            """
-            <div style="max-width: 400px; margin: auto;">
+            f"""
+            <div style="max-width: 400px; margin: 0 auto 20px auto; text-align: center;">
+                <img src="data:image/png;base64,{_get_base64(BPTRAN_LOGO_PATH)}" width="120" style="object-fit: contain;" />
+            </div>
+            <h2 style="text-align: center; margin-bottom: 10px;">Sinistros de Trânsito - BPTran</h2>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
-        st.title("Login")
+
         st.text_input("Usuário", key="user_input")
         st.text_input("Senha", type="password", key="password_input")
         st.button("Entrar", on_click=login_callback)
         if st.session_state.get("login_failed", False):
             st.error("Usuário ou senha inválidos")
-        st.markdown("</div>", unsafe_allow_html=True)
 
 def show_protected_content():
-    st.success("Você está logado!")
+    inject_css()
+
+    with st.sidebar:
+        st.markdown(
+            f"""
+            <div style="text-align: center; padding: 10px 0;">
+                <img src="data:image/png;base64,{_get_base64(BPTRAN_LOGO_PATH)}" 
+                     style="width:100px; margin-bottom:10px; object-fit:contain;">
+                <h3 style="margin-bottom: 20px;">Menu</h3>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.button("🚪 Sair", on_click=logout_callback, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("### 📊 Relatórios")
+        st.markdown("- Óbitos")
+        st.markdown("- Comparativo 2024/2025")
+        st.markdown("- Mapa de Ocorrências")
+
+    st.markdown(
+        f"""
+        <div class="header-container">
+            <img src="data:image/png;base64,{_get_base64(BPTRAN_LOGO_PATH)}" alt="Logo BPTran" />
+            <h2>Sinistros de Trânsito - BPTran</h2>
+            <p>
+                Este relatório apresenta os óbitos em sinistros fatais atendidos pelo Batalhão de Polícia de Trânsito - BPTran em Curitiba.<br>
+                Os dados são extraídos do sistema BATEU e filtrados para mostrar apenas os óbitos registrados pelo BPTran na cidade.<br>
+                Serve de apoio para a elaboração do GDO (Gestão de Desempenho Operacional) e análise comparativa entre os anos 2024 e 2025.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     with st.spinner("Carregando dados da planilha..."):
         data = get_google_sheet_data()
     st.dataframe(data, use_container_width=True, height=800)
-
-    if st.button("Logout"):
-        logout_callback()
 
 def main():
     if is_logged_in():
