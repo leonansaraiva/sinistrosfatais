@@ -3,7 +3,6 @@ import pandas as pd
 import base64
 from google.oauth2.service_account import Credentials
 import gspread
-import numpy as np
 from mapa import show_map
 
 BPTRAN_LOGO_PATH = "bptran_logo.png"
@@ -64,33 +63,31 @@ def get_google_sheet_data():
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
 
+    # Tratar a coluna 'Número (KM)' se existir
     if "Número (KM)" in df.columns:
-        df["Número (KM)"] = df["Número (KM)"].astype(str).replace('-', '')
+        df["Número (KM)"] = (
+            df["Número (KM)"]
+            .astype(str)
+            .str.strip()
+            .replace({"": None, "-": None})
+            .str.replace(r"[^0-9]", "", regex=True)
+        )
         df["Número (KM)"] = pd.to_numeric(df["Número (KM)"], errors='coerce')
 
-    return df
+    # Tratar Latitude e Longitude para float, limpar strings vazias e caracteres errados
+    for col in ["Latitude", "Longitude"]:
+        if col in df.columns:
+            df[col] = (
+                df[col]
+                .astype(str)
+                .str.strip()
+                .replace({"": None, "-": None})
+                .str.replace(r"[^0-9\-,\.]", "", regex=True)
+                .str.replace(",", ".", regex=False)
+            )
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
-def get_fake_map_data():
-    # Dados fake no formato esperado pelo mapa
-    data = [
-        {
-            "id": 1, "bairro": "Centro", "data": "2024-03-10", "genero": "Masculino", "tipo": "Colisão",
-            "latitude": -25.4284, "longitude": -49.2733,
-            "envolvidos": [
-                {"tipo": "Condutor", "nome": "João Silva", "veiculo": "Ford Ka", "placa": "ABC-1234", "resultado": "Óbito"},
-                {"tipo": "Condutor", "nome": "Carlos Souza", "veiculo": "Fiat Uno", "placa": "XYZ-5678", "resultado": "Ferimentos"}
-            ]
-        },
-        {
-            "id": 8, "bairro": "São Francisco", "data": "2025-09-25", "genero": "Masculino", "tipo": "Colisão Frontal",
-            "latitude": -25.3900, "longitude": -49.2800,
-            "envolvidos": [
-                {"tipo": "Condutor", "nome": "Rodrigo Silva", "veiculo": "Toyota Hilux", "placa": "KLM-7777", "resultado": "Óbito"},
-                {"tipo": "Condutor", "nome": "Juliana Souza", "veiculo": "Honda HRV", "placa": "NOP-8888", "resultado": "Ferimentos"}
-            ]
-        }
-    ]
-    return pd.DataFrame(data)
+    return df
 
 def show_dashboard(logout_callback):
     inject_css()
@@ -130,5 +127,5 @@ def show_dashboard(logout_callback):
         st.dataframe(data, use_container_width=True, height=800)
 
     elif escolha == "Mapa":
-        data = get_fake_map_data()
+        data = get_google_sheet_data()
         show_map(data)

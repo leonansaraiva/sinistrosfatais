@@ -1,7 +1,9 @@
-import streamlit as st
 import folium
+import streamlit as st
 from streamlit_folium import st_folium
+import pandas as pd
 import json
+
 
 RESULTADO_ICONES = {
     "Óbito": "❌",
@@ -46,44 +48,36 @@ def mapa_sinistros(df):
         'fillOpacity': 0.1
     }).add_to(m)
 
+    ignorados = 0
+
     for idx, row in df.iterrows():
+        lat = row.get("Latitude")
+        lon = row.get("Longitude")
+        
+        if pd.isna(lat) or pd.isna(lon):
+            ignorados += 1
+            continue
+        if not pd.isna(lat) and not pd.isna(lon):
+            st.write(f"Registro {idx}: Latitude={lat}, Longitude={lon}")
+            # Aqui continua o código de adicionar o marcador...
+        else:
+            st.write(f"Registro {idx} ignorado por falta de coordenadas")
+
         popup_html = "<div style='width:320px; font-family:Arial, sans-serif; font-size:14px;'>"
-        popup_html += f"<b>Tipo:</b> {row['tipo']}<br><b>Data:</b> {row['data']}<br><b>Bairro:</b> {row['bairro']}<hr>"
-
-        for i, envolvido in enumerate(row['envolvidos'], 1):
-            icone = RESULTADO_ICONES.get(envolvido.get("resultado", ""), "")
-            cor_resultado = {
-                "Óbito": "#e15759",
-                "Ferimentos": "#f28e2b",
-                "Sem Ferimentos": "#59a14f"
-            }.get(envolvido.get("resultado", ""), "black")
-
-            popup_html += f"<div style='margin-bottom:10px; padding:5px; border:1px solid #ccc; border-radius:5px; background-color:#fff;'>"
-            popup_html += f"<b>Envolvido {i}:</b><br>"
-            popup_html += f"Tipo: {envolvido.get('tipo', '')}<br>"
-            nome = envolvido.get("nome", "N/A")
-            popup_html += f"Nome: {nome}<br>"
-            if "veiculo" in envolvido:
-                popup_html += f"Veículo: {envolvido.get('veiculo')}<br>"
-            if "placa" in envolvido:
-                popup_html += f"Placa: {envolvido.get('placa')}<br>"
-            popup_html += f"<b style='color:{cor_resultado}'>Resultado: {icone} {envolvido.get('resultado')}</b>"
-            popup_html += "</div>"
-
+        popup_html += f"<b>Ano:</b> {row.get('Ano', '')}<br>"
+        popup_html += f"<b>Mês:</b> {row.get('Mês', '')}<br>"
+        popup_html += f"<b>Protocolo BATEU:</b> {row.get('Protocolo BATEU', '')}<br>"
+        popup_html += f"<b>Hora:</b> {row.get('Hora', '')}"
         popup_html += "</div>"
 
-        icon_color = 'green'
-        resultados = [e.get("resultado", "") for e in row['envolvidos']]
-        if "Óbito" in resultados:
-            icon_color = 'red'
-        elif "Ferimentos" in resultados:
-            icon_color = 'orange'
-
         folium.Marker(
-            location=[row['latitude'], row['longitude']],
+            location=[lat, lon],
             popup=folium.Popup(popup_html, max_width=350),
-            icon=folium.Icon(color=icon_color, icon='info-sign')
+            icon=folium.Icon(color='blue', icon='info-sign')
         ).add_to(m)
+
+    if ignorados > 0:
+        st.warning(f"{ignorados} registros não foram exibidos no mapa por não conterem coordenadas válidas.")
 
     return m
 
